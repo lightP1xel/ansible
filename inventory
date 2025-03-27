@@ -1,0 +1,2 @@
+[Linux]
+oraclelinux ansible_host=192.168.200.202 ansible_connection=ssh ansible_ssh_pass=${pass}}

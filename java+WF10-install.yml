@@ -1,0 +1,81 @@
+-
+  name: Playbook java install
+  hosts: Linux
+  vars:
+    WF_pass: !vault |
+          $ANSIBLE_VAULT;1.1;AES256
+          36643232306632393430643237356665613763396239313263306330613466633766623964613765
+          6537343236336161373332353836353138613361393065630a633533363637346530373962613434
+          35363364303564303836626566326363346262663561653835376237383565326263623163393033
+          6333633537643164340a363933386539363734343538653063626434353830303464376230656139
+          3665
+  tasks:
+    - name: Copy java tar file on server
+      ansible.builtin.copy:
+        src: /root/ansible-project/jdk-8u111-linux-x64.tar.gz
+        dest: /opt
+        owner: root
+        group: root
+        mode: '0644'
+    - name: Untar archive java
+      ansible.builtin.unarchive:
+        src: /opt/jdk-8u111-linux-x64.tar.gz
+        dest: /opt
+        remote_src: yes
+    - name: Set alternatives for java
+      ansible.builtin.shell:
+        cmd: alternatives --install /usr/bin/java java /opt/jdk1.8.0_111/bin/java 2
+    - name: Set alternative for jar
+      ansible.builtin.shell:
+        cmd: alternatives --install /usr/bin/jar jar /opt/jdk1.8.0_111/bin/jar 2
+    - name: Set alternative for javac
+      ansible.builtin.shell:
+        cmd: alternatives --install /usr/bin/javac javac /opt/jdk1.8.0_111/bin/javac 2
+    - name: Set jar
+      ansible.builtin.shell:
+        cmd: alternatives --set jar /opt/jdk1.8.0_111/bin/jar
+    - name: Set javac
+      ansible.builtin.shell:
+        cmd: alternatives --set javac /opt/jdk1.8.0_111/bin/javac
+    - name: Recursively remove archive jdk
+      ansible.builtin.file:
+        path: /opt/jdk-8u111-linux-x64.tar.gz
+        state: absent
+    - name: Copy wildfly from host
+      ansible.builtin.copy:
+        src: /root/ansible-project/wildfly-10.1.0.Final.tar.gz
+        dest: /opt
+        owner: root
+        group: root
+        mode: '0644'
+    - name: Untar archive wildfly
+      ansible.builtin.unarchive:
+        src: /opt/wildfly-10.1.0.Final.tar.gz
+        dest: /opt
+        remote_src: yes
+    - name: Rename dir wildfly
+      ansible.builtin.shell:
+        cmd: mv /opt/wildfly-10.1.0.Final /opt/wildfly
+    - name: Recursively remove archive wildfly
+      ansible.builtin.file:
+        path: /opt/wildfly-10.1.0.Final.tar.gz
+        state: absent
+    - name: Copy wildfly.service from host
+      ansible.builtin.copy:
+        src: /root/ansible-project/wildfly.service
+        dest: /etc/systemd/system
+        owner: root
+        group: root
+        mode: '0755'
+    - name: Start wildfly daemon
+      ansible.builtin.systemd:
+        state: started
+        enabled: true
+        name: wildfly.service  
+    - name: Create WF user
+      ansible.builtin.script:
+        cmd: add-user.sh -u 'wildfly' -p {{ WF_pass }}
+      args:
+        executable: /opt/wildfly/bin/add-user.sh
+
+        
